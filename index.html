@@ -2,16 +2,33 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>VIP 통합 관리 시스템 (관리자 권한 강화)</title>
+    <title>VIP 통합 관리 시스템 (Firebase 연동 완료)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         .active-tab { background-color: white; color: #1e1b4b; border-left: 4px solid #4338ca; font-weight: 800; }
-        .admin-sidebar::-webkit-scrollbar { width: 4px; }
-        .admin-sidebar::-webkit-scrollbar-thumb { background: #334155; }
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-gray-800 overflow-hidden text-[13px]">
+
+    <script>
+        // 유경균님의 실제 Firebase 설정값 적용
+        const firebaseConfig = {
+            apiKey: "AIzaSyAdb20mdZehcFDOtE-rztx9xqd6PjHbk-g",
+            authDomain: "together-70bd1.firebaseapp.com",
+            projectId: "together-70bd1",
+            storageBucket: "together-70bd1.firebasestorage.app",
+            messagingSenderId: "524144266410",
+            appId: "1:524144266410:web:2771ccfb4fb31230edd4d3",
+            measurementId: "G-G1X9W9FGKN"
+        };
+        
+        // 초기화
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+    </script>
 
     <div id="login-page" class="flex flex-col items-center justify-center h-screen bg-indigo-950 px-4">
         <div class="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-sm text-center border-b-8 border-indigo-500">
@@ -25,21 +42,15 @@
     <div id="main-page" class="hidden flex h-screen">
         <aside class="w-64 bg-indigo-950 text-white flex flex-col shrink-0">
             <div class="p-6 border-b border-indigo-900 text-center"><h2 class="text-xl font-black italic">VIP PORTFOLIO</h2></div>
-            
             <nav class="mt-6 space-y-1">
                 <button onclick="switchTab('master')" id="tab-master" class="w-full flex items-center px-6 py-4 transition-all active-tab">📢 마스터 추천</button>
                 <button onclick="switchTab('personal')" id="tab-personal" class="w-full flex items-center px-6 py-4 transition-all text-indigo-300 hover:bg-indigo-900">📈 내 포트폴리오</button>
-                
-                <div id="admin-only-menu" class="hidden">
-                    <button onclick="switchTab('accounts')" id="tab-accounts" class="w-full flex items-center px-6 py-4 transition-all text-indigo-300 hover:bg-indigo-900 border-t border-indigo-900 mt-2">⚙️ 유저 계정 설정</button>
-                </div>
+                <button onclick="switchTab('accounts')" id="tab-accounts" class="hidden w-full flex items-center px-6 py-4 transition-all text-indigo-300 hover:bg-indigo-900 border-t border-indigo-900 mt-2">⚙️ 유저 계정 설정</button>
             </nav>
-
             <div id="admin-section" class="hidden flex-1 overflow-hidden flex flex-col border-t border-indigo-900 mt-4 pt-4">
-                <h3 class="px-6 text-[10px] text-indigo-400 font-bold mb-2 uppercase tracking-widest">Member Monitor</h3>
-                <div id="user-list-container" class="overflow-y-auto px-4 admin-sidebar"></div>
+                <h3 class="px-6 text-[10px] text-indigo-400 font-bold mb-2 uppercase tracking-widest text-center">Member Monitor</h3>
+                <div id="user-list-container" class="overflow-y-auto px-4 space-y-1"></div>
             </div>
-
             <button onclick="location.reload()" class="p-6 text-xs text-indigo-500 font-bold hover:text-red-400 text-left">LOGOUT</button>
         </aside>
 
@@ -50,7 +61,7 @@
             </header>
 
             <div class="p-6 overflow-y-auto h-full">
-                <div id="input-section" class="hidden mb-6 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm transition-all">
+                <div id="input-section" class="hidden mb-6 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                     <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-3">
                         <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">Stock Name</label><input type="text" id="in-name" class="w-full border p-2 rounded text-sm outline-none focus:ring-1 ring-indigo-500"></div>
                         <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400">Buy Price</label><input type="number" id="in-price" oninput="autoCalc()" class="w-full border p-2 rounded text-sm bg-orange-50 font-bold outline-none"></div>
@@ -62,7 +73,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center border-t pt-4">
                         <div class="text-[11px] text-slate-400">Buy: <span id="view-buy" class="font-bold text-slate-900">0</span> / Cur: <span id="view-cur" class="font-bold text-blue-600">0</span> / Target: <span id="view-target" class="font-bold text-green-600">0</span></div>
                         <input type="text" id="in-memo" placeholder="비고 / 대응 전략" class="md:col-span-2 border p-2 rounded text-sm outline-none focus:bg-slate-50">
-                        <button id="save-btn" onclick="saveRecord()" class="bg-indigo-900 text-white rounded-lg font-bold py-2.5 hover:bg-black shadow-md transition-all active:scale-95">기록 저장</button>
+                        <button id="save-btn" onclick="saveToFirebase()" class="bg-indigo-900 text-white rounded-lg font-bold py-2.5 hover:bg-black shadow-md transition-all active:scale-95">서버 저장</button>
                     </div>
                 </div>
 
@@ -74,152 +85,76 @@
                 </div>
 
                 <div id="account-section" class="hidden space-y-4">
-                    <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-indigo-900 text-[11px] flex items-center">
-                        <span class="mr-2">🛡️</span> <strong>ADMIN PRIVILEGE:</strong> 여기서 각 슬롯의 ID와 PW를 변경할 수 있습니다. 변경 후 반드시 '최종 저장'을 눌러주세요.
-                    </div>
                     <div class="bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
                         <table class="w-full text-center">
                             <thead class="bg-indigo-900 text-white text-[11px]">
-                                <tr>
-                                    <th class="p-3 border-r border-indigo-800">슬롯</th>
-                                    <th class="p-3 border-r border-indigo-800">접속 아이디</th>
-                                    <th class="p-3">비밀번호</th>
-                                </tr>
+                                <tr><th class="p-3 border-r border-indigo-800">슬롯</th><th class="p-3 border-r border-indigo-800">아이디</th><th class="p-3">비번</th></tr>
                             </thead>
                             <tbody id="account-list-body"></tbody>
                         </table>
                     </div>
-                    <button onclick="saveAllAccounts()" class="w-full bg-red-600 text-white py-4 rounded-xl font-black shadow-xl hover:bg-red-700 transition-all">계정 정보 최종 저장</button>
+                    <button onclick="saveAccountsToFirebase()" class="w-full bg-red-600 text-white py-4 rounded-xl font-black shadow-xl hover:bg-red-700">계정 정보 최종 저장</button>
                 </div>
             </div>
         </main>
     </div>
 
     <script>
-        const MASTER_ADMIN_ID = 'admin01';
-        const MASTER_ADMIN_PW = '1234';
-        
-        let userAccounts = JSON.parse(localStorage.getItem('VIP_ACCOUNTS')) || [];
-        if(userAccounts.length === 0) {
-            for(let i=1; i<=30; i++) {
-                userAccounts.push({ slot: i, id: `user${String(i).padStart(2,'0')}`, pw: '1234' });
-            }
-            localStorage.setItem('VIP_ACCOUNTS', JSON.stringify(userAccounts));
-        }
-
         let currentUser = null; 
         let currentTab = "master"; 
         let viewingUser = null; 
-        let editIdx = -1;
+        let userAccounts = [];
+        let editDocId = null; 
+        let unsubscribe = null;
 
-        function handleLogin() {
-            const inputId = document.getElementById('tid').value.toLowerCase().trim();
-            const inputPw = document.getElementById('tpw').value;
-
-            if(inputId === MASTER_ADMIN_ID && inputPw === MASTER_ADMIN_PW) {
-                currentUser = { id: MASTER_ADMIN_ID, role: 'ADMIN' };
+        async function handleLogin() {
+            const id = document.getElementById('tid').value.toLowerCase().trim();
+            const pw = document.getElementById('tpw').value;
+            if(id === "admin01" && pw === "1234") {
+                currentUser = { id: "admin01", role: "ADMIN" };
                 loginSuccess();
             } else {
-                const found = userAccounts.find(u => u.id === inputId && u.pw === inputPw);
-                if(found) {
-                    currentUser = { ...found, role: 'USER' };
-                    loginSuccess();
-                } else {
-                    alert("인증에 실패했습니다.");
-                }
+                const snap = await db.collection("accounts").where("id", "==", id).where("pw", "==", pw).get();
+                if(!snap.empty) { currentUser = { id: id, role: "USER" }; loginSuccess(); }
+                else alert("아이디 혹은 비밀번호가 틀렸습니다.");
             }
         }
 
-        function loginSuccess() {
-            document.getElementById('login-page').style.display = 'none';
-            document.getElementById('main-page').style.display = 'flex';
-            document.getElementById('user-badge').innerText = `${currentUser.id}`;
-            
-            // 관리자 권한 UI 활성화
+        async function loginSuccess() {
+            document.getElementById('login-page').classList.add('hidden');
+            document.getElementById('main-page').classList.remove('hidden');
+            document.getElementById('user-badge').innerText = currentUser.id;
             if(currentUser.role === 'ADMIN') {
-                document.getElementById('admin-only-menu').classList.remove('hidden');
+                document.getElementById('tab-accounts').classList.remove('hidden');
                 document.getElementById('admin-section').classList.remove('hidden');
-                renderUserListSidebar();
+                loadAllAccounts();
             }
-
             viewingUser = currentUser.id;
             switchTab('master');
         }
 
-        function switchTab(tab) {
-            // [보안] 관리자가 아닌데 계정 설정 탭에 접근하려 할 경우 강제 차단
-            if(tab === 'accounts' && currentUser.role !== 'ADMIN') {
-                alert("접근 권한이 없습니다.");
-                return;
-            }
-
-            currentTab = tab; editIdx = -1; resetInput();
+        async function switchTab(tab) {
+            currentTab = tab; editDocId = null; resetInput();
             document.querySelectorAll('nav button').forEach(b => b.classList.remove('active-tab', 'text-indigo-300'));
             document.getElementById(`tab-${tab}`).className = `w-full px-6 py-4 transition-all active-tab`;
-
             document.getElementById('table-container').style.display = (tab === 'accounts') ? 'none' : 'block';
             document.getElementById('account-section').style.display = (tab === 'accounts') ? 'block' : 'none';
-
-            if(tab === 'accounts') {
-                document.getElementById('content-title').innerText = "⚙️ 유저 계정 설정";
-                renderAccountSettings();
-            } else {
-                document.getElementById('content-title').innerText = tab === 'master' ? "📢 마스터 추천" : (viewingUser === currentUser.id ? "📈 내 포트폴리오" : `📁 ${viewingUser.toUpperCase()}`);
-                
-                // 입력폼 권한: 마스터탭은 관리자만, 개인탭은 본인 자산 볼때만
-                const canEdit = (tab === 'master' && currentUser.role === 'ADMIN') || (tab === 'personal' && viewingUser === currentUser.id);
-                document.getElementById('input-section').classList.toggle('hidden', !canEdit);
-                render();
-            }
+            const canEdit = (tab === 'master' && currentUser.role === 'ADMIN') || (tab === 'personal' && viewingUser === currentUser.id);
+            document.getElementById('input-section').classList.toggle('hidden', !canEdit);
+            if(tab === 'accounts') { document.getElementById('content-title').innerText = "⚙️ 계정 관리"; renderAccountSettings(); }
+            else { document.getElementById('content-title').innerText = tab === 'master' ? "📢 마스터 추천" : (viewingUser === currentUser.id ? "📈 내 포트폴리오" : `📁 ${viewingUser.toUpperCase()}`); startRealtimeSync(); }
         }
 
-        function renderAccountSettings() {
-            const body = document.getElementById('account-list-body');
-            body.innerHTML = userAccounts.map((u, i) => `
-                <tr class="border-b">
-                    <td class="p-3 bg-slate-50 text-[10px] text-slate-400 font-mono italic">#${String(u.slot).padStart(2,'0')}</td>
-                    <td class="p-2 border-l"><input type="text" value="${u.id}" onchange="updateAccountData(${i}, 'id', this.value)" class="w-full p-1 text-center font-bold text-indigo-900 outline-none border-b border-transparent focus:border-indigo-400"></td>
-                    <td class="p-2 border-l"><input type="text" value="${u.pw}" onchange="updateAccountData(${i}, 'pw', this.value)" class="w-full p-1 text-center outline-none border-b border-transparent focus:border-indigo-400"></td>
-                </tr>
-            `).join('');
+        function startRealtimeSync() {
+            if(unsubscribe) unsubscribe();
+            const col = currentTab === 'master' ? 'master_stocks' : `stocks_${viewingUser}`;
+            unsubscribe = db.collection(col).orderBy("createdAt", "desc").onSnapshot(snap => {
+                const data = snap.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+                renderTable(data);
+            });
         }
 
-        function updateAccountData(idx, field, val) {
-            userAccounts[idx][field] = val.toLowerCase().trim();
-        }
-
-        function saveAllAccounts() {
-            localStorage.setItem('VIP_ACCOUNTS', JSON.stringify(userAccounts));
-            alert("변경사항이 저장되었습니다.");
-            renderUserListSidebar();
-        }
-
-        function renderUserListSidebar() {
-            const container = document.getElementById('user-list-container');
-            container.innerHTML = userAccounts.map(u => `
-                <button onclick="viewUserPortfolio('${u.id}')" class="w-full text-left p-2.5 rounded text-[11px] font-bold text-indigo-300 hover:bg-indigo-800 transition">
-                    👤 ${u.id.toUpperCase()}
-                </button>
-            `).join('');
-        }
-
-        function viewUserPortfolio(id) {
-            viewingUser = id;
-            switchTab('personal');
-        }
-
-        /* --- 데이터 로직 (생략 없이 유지) --- */
-        function autoCalc() {
-            const p = Number(document.getElementById('in-price').value) || 0;
-            const cp = Number(document.getElementById('in-cur-price').value) || 0;
-            const tp = Number(document.getElementById('in-target').value) || 0;
-            const q = Number(document.getElementById('in-qty').value) || 0;
-            document.getElementById('view-buy').innerText = (p * q).toLocaleString();
-            document.getElementById('view-cur').innerText = (cp * q).toLocaleString();
-            document.getElementById('view-target').innerText = (tp * q).toLocaleString();
-        }
-
-        function saveRecord() {
+        async function saveToFirebase() {
             const data = {
                 name: document.getElementById('in-name').value,
                 p: Number(document.getElementById('in-price').value),
@@ -227,63 +162,71 @@
                 tp: Number(document.getElementById('in-target').value),
                 q: Number(document.getElementById('in-qty').value),
                 w: Number(document.getElementById('in-weight').value),
-                memo: document.getElementById('in-memo').value
+                memo: document.getElementById('in-memo').value,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-            if(!data.name) return alert("종목명을 입력하세요.");
-            
-            // 저장 위치 결정 (마스터 혹은 개인)
-            const key = currentTab === 'master' ? 'MASTER_DATA' : `DATA_${currentUser.id}`;
-            let stocks = JSON.parse(localStorage.getItem(key) || "[]");
-            
-            if(editIdx > -1) { stocks[editIdx] = data; editIdx = -1; document.getElementById('save-btn').innerText = "기록 저장"; } 
-            else { stocks.push(data); }
-            
-            localStorage.setItem(key, JSON.stringify(stocks));
-            resetInput(); render();
+            if(!data.name) return alert("종목명 입력!");
+            const col = currentTab === 'master' ? 'master_stocks' : `stocks_${currentUser.id}`;
+            if(editDocId) { await db.collection(col).doc(editDocId).update(data); editDocId = null; document.getElementById('save-btn').innerText = "서버 저장"; }
+            else { await db.collection(col).add(data); }
+            resetInput();
         }
 
-        function resetInput() {
-            ["in-name", "in-price", "in-cur-price", "in-target", "in-qty", "in-weight", "in-memo"].forEach(id => document.getElementById(id).value = "");
-            autoCalc();
+        async function deleteRow(id) {
+            if(!confirm("삭제할까요?")) return;
+            const col = currentTab === 'master' ? 'master_stocks' : `stocks_${viewingUser}`;
+            await db.collection(col).doc(id).delete();
         }
 
-        function editRow(idx) {
-            editIdx = idx;
-            const key = currentTab === 'master' ? 'MASTER_DATA' : `DATA_${currentUser.id}`;
-            const s = JSON.parse(localStorage.getItem(key))[idx];
-            document.getElementById('in-name').value = s.name;
-            document.getElementById('in-price').value = s.p;
-            document.getElementById('in-cur-price').value = s.cp;
-            document.getElementById('in-target').value = s.tp;
-            document.getElementById('in-qty').value = s.q;
-            document.getElementById('in-weight').value = s.w;
-            document.getElementById('in-memo').value = s.memo;
-            autoCalc();
+        function editRow(item) {
+            editDocId = item.docId;
+            document.getElementById('in-name').value = item.name;
+            document.getElementById('in-price').value = item.p;
+            document.getElementById('in-cur-price').value = item.cp;
+            document.getElementById('in-target').value = item.tp;
+            document.getElementById('in-qty').value = item.q;
+            document.getElementById('in-weight').value = item.w;
+            document.getElementById('in-memo').value = item.memo;
             document.getElementById('save-btn').innerText = "수정 완료";
-            window.scrollTo({top: 0, behavior: 'smooth'});
         }
 
-        function render() {
-            const key = currentTab === 'master' ? 'MASTER_DATA' : `DATA_${viewingUser}`;
-            const data = JSON.parse(localStorage.getItem(key) || "[]");
-            const head = document.getElementById('table-head');
-            head.innerHTML = `<tr><th class="p-3 border-r border-slate-700">종목</th><th class="p-3 border-r border-slate-700">매수가</th><th class="p-3 border-r border-slate-700">현재가</th><th class="p-3 border-r border-slate-700">목표가</th><th class="p-3 border-r border-slate-700">수량</th><th class="p-3 border-r border-slate-700 bg-yellow-500 text-black">비중</th><th class="p-3 border-r border-slate-700">매수금액</th><th class="p-3 border-r border-slate-700 bg-blue-900">현재금액</th><th class="p-3 border-r border-slate-700 bg-green-900">목표금액</th><th class="p-3 border-r border-slate-700">수익률</th><th class="p-3">관리</th></tr>`;
-            const body = document.getElementById('table-body');
-            body.innerHTML = data.map((s, idx) => {
+        async function loadAllAccounts() {
+            const snap = await db.collection("accounts").orderBy("slot").get();
+            if(snap.empty) {
+                for(let i=1; i<=30; i++) { await db.collection("accounts").add({ slot: i, id: `user${String(i).padStart(2,'0')}`, pw: '1234' }); }
+                loadAllAccounts();
+            } else {
+                userAccounts = snap.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+                renderUserListSidebar();
+            }
+        }
+
+        async function saveAccountsToFirebase() {
+            for(let acc of userAccounts) { await db.collection("accounts").doc(acc.docId).update({ id: acc.id, pw: acc.pw }); }
+            alert("서버 저장 완료"); renderUserListSidebar();
+        }
+
+        function renderTable(data) {
+            document.getElementById('table-head').innerHTML = `<tr><th class="p-3 border-r">종목</th><th class="p-3 border-r">매수가</th><th class="p-3 border-r">현재가</th><th class="p-3 border-r">목표가</th><th class="p-3 border-r">수량</th><th class="p-3 border-r bg-yellow-500 text-black">비중</th><th class="p-3 border-r">매수금액</th><th class="p-3 border-r bg-blue-900">현재금액</th><th class="p-3 border-r bg-green-900">목표금액</th><th class="p-3 border-r">수익률</th><th class="p-3">관리</th></tr>`;
+            document.getElementById('table-body').innerHTML = data.map(s => {
                 const buyTotal = s.p * s.q; const curTotal = s.cp * s.q;
                 const profit = buyTotal > 0 ? ((curTotal - buyTotal) / buyTotal * 100).toFixed(2) : 0;
-                // 관리자가 보고있거나 본인 자산일 때만 수정/삭제 버튼 노출
                 const canManage = (currentTab === 'master' && currentUser.role === 'ADMIN') || (currentTab === 'personal' && viewingUser === currentUser.id);
-                return `<tr class="border-b text-[12px] hover:bg-slate-50"><td class="p-3 border font-black">${s.name}</td><td class="p-3 border">${s.p.toLocaleString()}</td><td class="p-3 border text-blue-600">${s.cp.toLocaleString()}</td><td class="p-3 border text-green-600">${s.tp.toLocaleString()}</td><td class="p-3 border">${s.q.toLocaleString()}</td><td class="p-3 border bg-yellow-50 font-black">${s.w}%</td><td class="p-3 border text-slate-400 font-normal">${buyTotal.toLocaleString()}</td><td class="p-3 border bg-blue-50">${curTotal.toLocaleString()}</td><td class="p-3 border bg-green-50">${(s.tp * s.q).toLocaleString()}</td><td class="p-3 border ${profit>0?'text-red-500':'text-blue-500'}">${profit}%</td><td class="p-3 border">${canManage ? `<div class="flex gap-1 justify-center"><button onclick="editRow(${idx})" class="bg-slate-100 px-2 py-1 rounded text-[10px] hover:bg-indigo-600 hover:text-white transition">수정</button><button onclick="deleteRow('${key}', ${idx})" class="bg-slate-100 px-2 py-1 rounded text-[10px] hover:bg-red-500 hover:text-white transition">삭제</button></div>` : '-'}</td></tr>`;
+                return `<tr class="border-b"><td class="p-3 border font-black">${s.name}</td><td class="p-3 border">${s.p.toLocaleString()}</td><td class="p-3 border text-blue-600">${s.cp.toLocaleString()}</td><td class="p-3 border text-green-600">${s.tp.toLocaleString()}</td><td class="p-3 border">${s.q.toLocaleString()}</td><td class="p-3 border bg-yellow-50 font-black">${s.w}%</td><td class="p-3 border text-slate-400 font-normal">${buyTotal.toLocaleString()}</td><td class="p-3 border bg-blue-50">${curTotal.toLocaleString()}</td><td class="p-3 border bg-green-50">${(s.tp * s.q).toLocaleString()}</td><td class="p-3 border ${profit>0?'text-red-500':'text-blue-500'}">${profit}%</td><td class="p-3 border">${canManage ? `<button onclick='editRow(${JSON.stringify(s)})' class="bg-slate-100 px-2 py-1 rounded text-[10px] mr-1">수정</button><button onclick="deleteRow('${s.docId}')" class="bg-slate-100 px-2 py-1 rounded text-[10px]">삭제</button>` : '-'}</td></tr>`;
             }).join('');
         }
 
-        function deleteRow(key, idx) {
-            if(!confirm("삭제하시겠습니까?")) return;
-            let stocks = JSON.parse(localStorage.getItem(key));
-            stocks.splice(idx, 1);
-            localStorage.setItem(key, JSON.stringify(stocks));
-            render();
+        function renderUserListSidebar() {
+            document.getElementById('user-list-container').innerHTML = userAccounts.map(u => `<button onclick="viewUserPortfolio('${u.id}')" class="w-full text-left p-2.5 rounded text-[11px] font-bold text-indigo-300 hover:bg-indigo-800 transition">👤 ${u.id.toUpperCase()}</button>`).join('');
+        }
+        function viewUserPortfolio(id) { viewingUser = id; switchTab('personal'); }
+        function autoCalc() {
+            const p = Number(document.getElementById('in-price').value)||0; const cp = Number(document.getElementById('in-cur-price').value)||0; const tp = Number(document.getElementById('in-target').value)||0; const q = Number(document.getElementById('in-qty').value)||0;
+            document.getElementById('view-buy').innerText = (p*q).toLocaleString(); document.getElementById('view-cur').innerText = (cp*q).toLocaleString(); document.getElementById('view-target').innerText = (tp*q).toLocaleString();
+        }
+        function resetInput() { ["in-name", "in-price", "in-cur-price", "in-target", "in-qty", "in-weight", "in-memo"].forEach(id => { document.getElementById(id).value = ""; }); autoCalc(); }
+        function renderAccountSettings() {
+            document.getElementById('account-list-body').innerHTML = userAccounts.map((u, i) => `<tr class="border-b"><td class="p-3 bg-slate-50 font-mono text-[10px]">#${u.slot}</td><td class="p-2 border-l"><input type="text" value="${u.id}" onchange="userAccounts[${i}].id=this.value.toLowerCase()" class="w-full p-1 text-center font-bold text-indigo-900 outline-none"></td><td class="p-2 border-l"><input type="text" value="${u.pw}" onchange="userAccounts[${i}].pw=this.value" class="w-full p-1 text-center outline-none"></td></tr>`).join('');
         }
     </script>
 </body>
