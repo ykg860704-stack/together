@@ -301,4 +301,73 @@
             };
             if(!data.name || !data.date) return alert("날짜와 종목명 필수!");
 
-            const
+            const col = currentTab === 'master' ? 'master_stocks' : `stocks_${currentUser.id}`;
+            if(editDocId) {
+                await db.collection(col).doc(editDocId).update(data);
+                editDocId = null;
+                document.getElementById('save-btn').innerText = "서버 저장";
+            } else {
+                await db.collection(col).add(data);
+            }
+            resetInput();
+        }
+
+        async function deleteRow(id) {
+            if(!confirm("삭제하시겠습니까?")) return;
+            const col = currentTab === 'master' ? 'master_stocks' : `stocks_${viewingUser}`;
+            await db.collection(col).doc(id).delete();
+        }
+
+        function editRow(item) {
+            editDocId = item.docId;
+            document.getElementById('in-date').value = item.date || "";
+            document.getElementById('in-name').value = item.name;
+            document.getElementById('in-code').value = item.code || "";
+            document.getElementById('in-price').value = item.p;
+            document.getElementById('in-cur-price').value = item.cp;
+            document.getElementById('in-target').value = item.tp;
+            document.getElementById('in-qty').value = item.q;
+            document.getElementById('in-weight').value = item.w;
+            document.getElementById('in-memo').value = item.memo || "";
+            document.getElementById('save-btn').innerText = "수정 적용";
+        }
+
+        async function loadAllAccounts() {
+            const snap = await db.collection("accounts").orderBy("slot").get();
+            if(snap.empty) {
+                for(let i=1; i<=30; i++) { await db.collection("accounts").add({ slot: i, id: `user${String(i).padStart(2,'0')}`, pw: '1234' }); }
+                loadAllAccounts();
+            } else {
+                userAccounts = snap.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+                renderUserListSidebar();
+            }
+        }
+
+        async function saveAccountsToFirebase() {
+            if(!confirm("저장하시겠습니까?")) return;
+            for(let acc of userAccounts) { await db.collection("accounts").doc(acc.docId).update({ id: acc.id, pw: acc.pw }); }
+            alert("계정 정보가 서버에 저장되었습니다.");
+            renderUserListSidebar();
+        }
+
+        function renderUserListSidebar() {
+            document.getElementById('user-list-container').innerHTML = userAccounts.map(u => `<button onclick="viewUserPortfolio('${u.id}')" class="w-full text-left p-2.5 rounded text-[11px] font-bold text-indigo-400 hover:bg-indigo-900 transition flex justify-between"><span>👤 ${u.id.toUpperCase()}</span></button>`).join('');
+        }
+        function viewUserPortfolio(id) { viewingUser = id; switchTab('personal'); }
+        function autoCalc() {
+            const p = Number(document.getElementById('in-price').value)||0; 
+            const cp = Number(document.getElementById('in-cur-price').value)||0; 
+            const q = Number(document.getElementById('in-qty').value)||0;
+            document.getElementById('view-buy').innerText = (p*q).toLocaleString(); 
+            document.getElementById('view-cur').innerText = (cp*q).toLocaleString();
+        }
+        function resetInput() { 
+            ["in-date", "in-name", "in-code", "in-price", "in-cur-price", "in-target", "in-qty", "in-weight", "in-memo"].forEach(id => { document.getElementById(id).value = ""; }); 
+            autoCalc(); 
+        }
+        function renderAccountSettings() {
+            document.getElementById('account-list-body').innerHTML = userAccounts.map((u, i) => `<tr class="border-b"><td class="p-3 bg-slate-50 font-mono text-[10px]">#${u.slot}</td><td class="p-2 border-l"><input type="text" value="${u.id}" onchange="userAccounts[${i}].id=this.value.toLowerCase()" class="w-full p-1 text-center font-bold text-indigo-900 outline-none bg-transparent"></td><td class="p-2 border-l"><input type="text" value="${u.pw}" onchange="userAccounts[${i}].pw=this.value" class="w-full p-1 text-center outline-none bg-transparent"></td></tr>`).join('');
+        }
+    </script>
+</body>
+</html>
