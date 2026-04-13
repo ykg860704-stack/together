@@ -2,19 +2,20 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>VIP 통합 관리 시스템 (Firebase 연동 완료)</title>
+    <title>VIP 통합 관리 시스템 (Pro)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         .active-tab { background-color: white; color: #1e1b4b; border-left: 4px solid #4338ca; font-weight: 800; }
+        th { cursor: pointer; position: relative; }
+        th:hover { background-color: #334155 !important; }
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-gray-800 overflow-hidden text-[13px]">
 
     <script>
-        // 유경균님의 실제 Firebase 설정값 적용
         const firebaseConfig = {
             apiKey: "AIzaSyAdb20mdZehcFDOtE-rztx9xqd6PjHbk-g",
             authDomain: "together-70bd1.firebaseapp.com",
@@ -24,28 +25,26 @@
             appId: "1:524144266410:web:2771ccfb4fb31230edd4d3",
             measurementId: "G-G1X9W9FGKN"
         };
-        
-        // 초기화
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
     </script>
 
     <div id="login-page" class="flex flex-col items-center justify-center h-screen bg-indigo-950 px-4">
         <div class="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-sm text-center border-b-8 border-indigo-500">
-            <h2 class="text-3xl font-black mb-8 text-indigo-900 tracking-tighter italic">VIP SYSTEM</h2>
-            <input type="text" id="tid" placeholder="USER ID" class="w-full border-2 p-3 rounded-xl mb-4 outline-none text-center focus:border-indigo-500">
-            <input type="password" id="tpw" placeholder="PASSWORD" class="w-full border-2 p-3 rounded-xl mb-6 outline-none text-center focus:border-indigo-500">
-            <button onclick="handleLogin()" class="w-full bg-indigo-900 text-white py-4 rounded-xl font-black hover:bg-black shadow-xl transition-all">LOGIN</button>
+            <h2 class="text-3xl font-black mb-8 text-indigo-900 italic">VIP SYSTEM</h2>
+            <input type="text" id="tid" placeholder="USER ID" class="w-full border-2 p-3 rounded-xl mb-4 outline-none text-center">
+            <input type="password" id="tpw" placeholder="PASSWORD" class="w-full border-2 p-3 rounded-xl mb-6 outline-none text-center">
+            <button onclick="handleLogin()" class="w-full bg-indigo-900 text-white py-4 rounded-xl font-black hover:bg-black shadow-xl">LOGIN</button>
         </div>
     </div>
 
     <div id="main-page" class="hidden flex h-screen">
         <aside class="w-64 bg-indigo-950 text-white flex flex-col shrink-0">
-            <div class="p-6 border-b border-indigo-900 text-center"><h2 class="text-xl font-black italic">VIP PORTFOLIO</h2></div>
+            <div class="p-6 border-b border-indigo-900 text-center font-black italic text-xl">VIP PORTFOLIO</div>
             <nav class="mt-6 space-y-1">
-                <button onclick="switchTab('master')" id="tab-master" class="w-full flex items-center px-6 py-4 transition-all active-tab">📢 마스터 추천</button>
-                <button onclick="switchTab('personal')" id="tab-personal" class="w-full flex items-center px-6 py-4 transition-all text-indigo-300 hover:bg-indigo-900">📈 내 포트폴리오</button>
-                <button onclick="switchTab('accounts')" id="tab-accounts" class="hidden w-full flex items-center px-6 py-4 transition-all text-indigo-300 hover:bg-indigo-900 border-t border-indigo-900 mt-2">⚙️ 유저 계정 설정</button>
+                <button onclick="switchTab('master')" id="tab-master" class="w-full flex items-center px-6 py-4 active-tab">📢 마스터 추천</button>
+                <button onclick="switchTab('personal')" id="tab-personal" class="w-full flex items-center px-6 py-4 text-indigo-300 hover:bg-indigo-900">📈 내 포트폴리오</button>
+                <button onclick="switchTab('accounts')" id="tab-accounts" class="hidden w-full flex items-center px-6 py-4 text-indigo-300 border-t border-indigo-900 mt-2">⚙️ 계정 관리</button>
             </nav>
             <div id="admin-section" class="hidden flex-1 overflow-hidden flex flex-col border-t border-indigo-900 mt-4 pt-4">
                 <h3 class="px-6 text-[10px] text-indigo-400 font-bold mb-2 uppercase tracking-widest text-center">Member Monitor</h3>
@@ -56,39 +55,57 @@
 
         <main class="flex-1 flex flex-col overflow-hidden bg-slate-50">
             <header class="h-16 bg-white border-b px-8 flex items-center justify-between shadow-sm">
-                <h1 id="content-title" class="font-black text-indigo-900 text-lg italic">LOADING...</h1>
+                <h1 id="content-title" class="font-black text-indigo-900 text-lg italic">마스터 추천</h1>
                 <div id="user-badge" class="bg-indigo-100 text-indigo-800 px-4 py-1.5 rounded-full font-black text-[11px] border border-indigo-200 uppercase"></div>
             </header>
 
             <div class="p-6 overflow-y-auto h-full">
-                <div id="input-section" class="hidden mb-6 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                    <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-3">
-                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">Stock Name</label><input type="text" id="in-name" class="w-full border p-2 rounded text-sm outline-none focus:ring-1 ring-indigo-500"></div>
-                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400">Buy Price</label><input type="number" id="in-price" oninput="autoCalc()" class="w-full border p-2 rounded text-sm bg-orange-50 font-bold outline-none"></div>
-                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400">Current</label><input type="number" id="in-cur-price" oninput="autoCalc()" class="w-full border p-2 rounded text-sm bg-blue-50 font-bold outline-none"></div>
-                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400">Target</label><input type="number" id="in-target" oninput="autoCalc()" class="w-full border p-2 rounded text-sm bg-green-50 font-bold outline-none"></div>
-                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400">Qty</label><input type="number" id="in-qty" oninput="autoCalc()" class="w-full border p-2 rounded text-sm outline-none"></div>
-                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400">Weight %</label><input type="number" id="in-weight" class="w-full border p-2 rounded text-sm outline-none"></div>
+                <div id="input-section" class="hidden mb-6 bg-white p-5 rounded-2xl border shadow-sm">
+                    <div class="grid grid-cols-2 md:grid-cols-7 gap-3 mb-3">
+                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400">DATE</label><input type="date" id="in-date" class="w-full border p-2 rounded text-sm outline-none"></div>
+                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400">STOCK</label><input type="text" id="in-name" class="w-full border p-2 rounded text-sm outline-none"></div>
+                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400">BUY</label><input type="number" id="in-price" oninput="autoCalc()" class="w-full border p-2 rounded text-sm bg-orange-50 font-bold outline-none"></div>
+                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400">CUR</label><input type="number" id="in-cur-price" oninput="autoCalc()" class="w-full border p-2 rounded text-sm bg-blue-50 font-bold outline-none"></div>
+                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400">TARGET</label><input type="number" id="in-target" oninput="autoCalc()" class="w-full border p-2 rounded text-sm bg-green-50 font-bold outline-none"></div>
+                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400">QTY</label><input type="number" id="in-qty" oninput="autoCalc()" class="w-full border p-2 rounded text-sm outline-none"></div>
+                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400">WEIGHT %</label><input type="number" id="in-weight" class="w-full border p-2 rounded text-sm outline-none"></div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center border-t pt-4">
-                        <div class="text-[11px] text-slate-400">Buy: <span id="view-buy" class="font-bold text-slate-900">0</span> / Cur: <span id="view-cur" class="font-bold text-blue-600">0</span> / Target: <span id="view-target" class="font-bold text-green-600">0</span></div>
-                        <input type="text" id="in-memo" placeholder="비고 / 대응 전략" class="md:col-span-2 border p-2 rounded text-sm outline-none focus:bg-slate-50">
-                        <button id="save-btn" onclick="saveToFirebase()" class="bg-indigo-900 text-white rounded-lg font-bold py-2.5 hover:bg-black shadow-md transition-all active:scale-95">서버 저장</button>
+                        <div class="text-[11px] text-slate-400">Total Buy: <span id="view-buy" class="font-bold text-slate-900">0</span> / Cur: <span id="view-cur" class="font-bold text-blue-600">0</span></div>
+                        <input type="text" id="in-memo" placeholder="비고 및 대응 전략을 입력하세요" class="md:col-span-2 border p-2 rounded text-sm outline-none">
+                        <button id="save-btn" onclick="saveToFirebase()" class="bg-indigo-900 text-white rounded-lg font-bold py-2.5 hover:bg-black transition-all">서버 저장</button>
                     </div>
                 </div>
 
                 <div id="table-container" class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-x-auto">
-                    <table class="w-full text-center border-collapse">
-                        <thead id="table-head" class="bg-slate-900 text-white text-[11px] tracking-tight"></thead>
+                    <table class="w-full text-center border-collapse min-w-[1000px]">
+                        <thead id="table-head" class="bg-slate-900 text-white text-[11px] tracking-tight">
+                            <tr>
+                                <th class="p-3 border-r" onclick="setSort('date')">매수일자 ↕</th>
+                                <th class="p-3 border-r" onclick="setSort('name')">종목 ↕</th>
+                                <th class="p-3 border-r" onclick="setSort('p')">매수가 ↕</th>
+                                <th class="p-3 border-r" onclick="setSort('cp')">현재가 ↕</th>
+                                <th class="p-3 border-r" onclick="setSort('tp')">목표가 ↕</th>
+                                <th class="p-3 border-r" onclick="setSort('q')">수량 ↕</th>
+                                <th class="p-3 border-r bg-yellow-600" onclick="setSort('w')">비중 ↕</th>
+                                <th class="p-3 border-r" onclick="setSort('buyTotal')">매수금액 ↕</th>
+                                <th class="p-3 border-r bg-blue-900">현재금액</th>
+                                <th class="p-3 border-r bg-green-900">목표금액</th>
+                                <th class="p-3 border-r" onclick="setSort('profit')">수익률 ↕</th>
+                                <th class="p-3 border-r">비고</th>
+                                <th class="p-3">관리</th>
+                            </tr>
+                        </thead>
                         <tbody id="table-body" class="bg-white font-bold text-slate-700"></tbody>
+                        <tfoot id="table-foot" class="bg-slate-50 border-t-2 border-slate-900 font-black text-indigo-900"></tfoot>
                     </table>
                 </div>
 
                 <div id="account-section" class="hidden space-y-4">
-                    <div class="bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
-                        <table class="w-full text-center">
-                            <thead class="bg-indigo-900 text-white text-[11px]">
-                                <tr><th class="p-3 border-r border-indigo-800">슬롯</th><th class="p-3 border-r border-indigo-800">아이디</th><th class="p-3">비번</th></tr>
+                    <div class="bg-white rounded-xl shadow-xl border overflow-hidden">
+                        <table class="w-full text-center text-sm">
+                            <thead class="bg-indigo-900 text-white">
+                                <tr><th class="p-3 border-r">슬롯</th><th class="p-3 border-r">아이디</th><th class="p-3">비번</th></tr>
                             </thead>
                             <tbody id="account-list-body"></tbody>
                         </table>
@@ -106,7 +123,11 @@
         let userAccounts = [];
         let editDocId = null; 
         let unsubscribe = null;
+        let sortKey = 'date';
+        let sortDir = 'desc';
+        let currentData = [];
 
+        // 로그인
         async function handleLogin() {
             const id = document.getElementById('tid').value.toLowerCase().trim();
             const pw = document.getElementById('tpw').value;
@@ -116,11 +137,11 @@
             } else {
                 const snap = await db.collection("accounts").where("id", "==", id).where("pw", "==", pw).get();
                 if(!snap.empty) { currentUser = { id: id, role: "USER" }; loginSuccess(); }
-                else alert("아이디 혹은 비밀번호가 틀렸습니다.");
+                else alert("정보가 틀립니다.");
             }
         }
 
-        async function loginSuccess() {
+        function loginSuccess() {
             document.getElementById('login-page').classList.add('hidden');
             document.getElementById('main-page').classList.remove('hidden');
             document.getElementById('user-badge').innerText = currentUser.id;
@@ -133,29 +154,105 @@
             switchTab('master');
         }
 
+        // 탭 전환
         async function switchTab(tab) {
             currentTab = tab; editDocId = null; resetInput();
             document.querySelectorAll('nav button').forEach(b => b.classList.remove('active-tab', 'text-indigo-300'));
             document.getElementById(`tab-${tab}`).className = `w-full px-6 py-4 transition-all active-tab`;
             document.getElementById('table-container').style.display = (tab === 'accounts') ? 'none' : 'block';
             document.getElementById('account-section').style.display = (tab === 'accounts') ? 'block' : 'none';
+            
             const canEdit = (tab === 'master' && currentUser.role === 'ADMIN') || (tab === 'personal' && viewingUser === currentUser.id);
             document.getElementById('input-section').classList.toggle('hidden', !canEdit);
-            if(tab === 'accounts') { document.getElementById('content-title').innerText = "⚙️ 계정 관리"; renderAccountSettings(); }
-            else { document.getElementById('content-title').innerText = tab === 'master' ? "📢 마스터 추천" : (viewingUser === currentUser.id ? "📈 내 포트폴리오" : `📁 ${viewingUser.toUpperCase()}`); startRealtimeSync(); }
+            
+            if(tab === 'accounts') {
+                document.getElementById('content-title').innerText = "⚙️ 계정 관리";
+                renderAccountSettings();
+            } else {
+                document.getElementById('content-title').innerText = tab === 'master' ? "📢 마스터 추천" : (viewingUser === currentUser.id ? "📈 내 포트폴리오" : `📁 ${viewingUser.toUpperCase()} 포트폴리오`);
+                startRealtimeSync();
+            }
         }
 
+        // 실시간 동기화 및 정렬 적용
         function startRealtimeSync() {
             if(unsubscribe) unsubscribe();
             const col = currentTab === 'master' ? 'master_stocks' : `stocks_${viewingUser}`;
-            unsubscribe = db.collection(col).orderBy("createdAt", "desc").onSnapshot(snap => {
-                const data = snap.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-                renderTable(data);
+            unsubscribe = db.collection(col).onSnapshot(snap => {
+                currentData = snap.docs.map(doc => {
+                    const d = doc.data();
+                    return { 
+                        docId: doc.id, ...d, 
+                        buyTotal: d.p * d.q, 
+                        profit: d.p > 0 ? ((d.cp - d.p) / d.p * 100) : 0 
+                    };
+                });
+                renderTable();
             });
         }
 
+        function setSort(key) {
+            if(sortKey === key) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+            else { sortKey = key; sortDir = 'desc'; }
+            renderTable();
+        }
+
+        // 테이블 렌더링 (합계 포함)
+        function renderTable() {
+            const sorted = [...currentData].sort((a, b) => {
+                let v1 = a[sortKey], v2 = b[sortKey];
+                if(sortDir === 'asc') return v1 > v2 ? 1 : -1;
+                return v1 < v2 ? 1 : -1;
+            });
+
+            let totalWeight = 0, totalBuy = 0, totalCur = 0, totalTarget = 0;
+
+            const body = document.getElementById('table-body');
+            body.innerHTML = sorted.map(s => {
+                totalWeight += s.w; 
+                const bT = s.p * s.q; totalBuy += bT;
+                const cT = s.cp * s.q; totalCur += cT;
+                const tT = s.tp * s.q; totalTarget += tT;
+                const profit = s.p > 0 ? ((s.cp - s.p) / s.p * 100).toFixed(2) : 0;
+                const canManage = (currentTab === 'master' && currentUser.role === 'ADMIN') || (currentTab === 'personal' && viewingUser === currentUser.id);
+                
+                return `<tr class="border-b hover:bg-slate-50">
+                    <td class="p-3 border font-normal text-slate-500">${s.date || '-'}</td>
+                    <td class="p-3 border font-black text-indigo-900">${s.name}</td>
+                    <td class="p-3 border">${s.p.toLocaleString()}</td>
+                    <td class="p-3 border text-blue-600">${s.cp.toLocaleString()}</td>
+                    <td class="p-3 border text-green-600">${s.tp.toLocaleString()}</td>
+                    <td class="p-3 border">${s.q.toLocaleString()}</td>
+                    <td class="p-3 border bg-yellow-50 text-orange-700">${s.w}%</td>
+                    <td class="p-3 border text-slate-400 font-normal">${bT.toLocaleString()}</td>
+                    <td class="p-3 border bg-blue-50">${cT.toLocaleString()}</td>
+                    <td class="p-3 border bg-green-50">${tT.toLocaleString()}</td>
+                    <td class="p-3 border ${profit>0?'text-red-500':'text-blue-500'}">${profit}%</td>
+                    <td class="p-3 border text-left text-[11px] font-normal text-slate-500">${s.memo || ''}</td>
+                    <td class="p-3 border">
+                        ${canManage ? `<button onclick='editRow(${JSON.stringify(s)})' class="bg-slate-200 px-2 py-1 rounded text-[10px] mr-1">수정</button><button onclick="deleteRow('${s.docId}')" class="bg-slate-200 px-2 py-1 rounded text-[10px]">삭제</button>` : '-'}
+                    </td>
+                </tr>`;
+            }).join('');
+
+            // 합계 행(Footer)
+            const foot = document.getElementById('table-foot');
+            const totalProfit = totalBuy > 0 ? ((totalCur - totalBuy) / totalBuy * 100).toFixed(2) : 0;
+            foot.innerHTML = `<tr>
+                <td colspan="6" class="p-4 text-right">TOTAL SUMMARY</td>
+                <td class="p-4 bg-yellow-100 ${totalWeight > 100 ? 'text-red-600' : 'text-indigo-900'}">${totalWeight}%</td>
+                <td class="p-4 text-slate-900">${totalBuy.toLocaleString()}</td>
+                <td class="p-4 text-blue-800 bg-blue-100">${totalCur.toLocaleString()}</td>
+                <td class="p-4 text-green-800 bg-green-100">${totalTarget.toLocaleString()}</td>
+                <td class="p-4 ${totalProfit>0?'text-red-600':'text-blue-600'}">${totalProfit}%</td>
+                <td colspan="2"></td>
+            </tr>`;
+        }
+
+        // 저장 및 관리 함수들
         async function saveToFirebase() {
             const data = {
+                date: document.getElementById('in-date').value,
                 name: document.getElementById('in-name').value,
                 p: Number(document.getElementById('in-price').value),
                 cp: Number(document.getElementById('in-cur-price').value),
@@ -165,29 +262,37 @@
                 memo: document.getElementById('in-memo').value,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-            if(!data.name) return alert("종목명 입력!");
+            if(!data.name || !data.date) return alert("날짜와 종목명은 필수입니다.");
+
             const col = currentTab === 'master' ? 'master_stocks' : `stocks_${currentUser.id}`;
-            if(editDocId) { await db.collection(col).doc(editDocId).update(data); editDocId = null; document.getElementById('save-btn').innerText = "서버 저장"; }
-            else { await db.collection(col).add(data); }
+            if(editDocId) {
+                await db.collection(col).doc(editDocId).update(data);
+                editDocId = null;
+                document.getElementById('save-btn').innerText = "서버 저장";
+            } else {
+                await db.collection(col).add(data);
+            }
             resetInput();
         }
 
         async function deleteRow(id) {
-            if(!confirm("삭제할까요?")) return;
+            if(!confirm("삭제하시겠습니까?")) return;
             const col = currentTab === 'master' ? 'master_stocks' : `stocks_${viewingUser}`;
             await db.collection(col).doc(id).delete();
         }
 
         function editRow(item) {
             editDocId = item.docId;
+            document.getElementById('in-date').value = item.date || "";
             document.getElementById('in-name').value = item.name;
             document.getElementById('in-price').value = item.p;
             document.getElementById('in-cur-price').value = item.cp;
             document.getElementById('in-target').value = item.tp;
             document.getElementById('in-qty').value = item.q;
             document.getElementById('in-weight').value = item.w;
-            document.getElementById('in-memo').value = item.memo;
+            document.getElementById('in-memo').value = item.memo || "";
             document.getElementById('save-btn').innerText = "수정 완료";
+            window.scrollTo({top: 0, behavior: 'smooth'});
         }
 
         async function loadAllAccounts() {
@@ -203,17 +308,8 @@
 
         async function saveAccountsToFirebase() {
             for(let acc of userAccounts) { await db.collection("accounts").doc(acc.docId).update({ id: acc.id, pw: acc.pw }); }
-            alert("서버 저장 완료"); renderUserListSidebar();
-        }
-
-        function renderTable(data) {
-            document.getElementById('table-head').innerHTML = `<tr><th class="p-3 border-r">종목</th><th class="p-3 border-r">매수가</th><th class="p-3 border-r">현재가</th><th class="p-3 border-r">목표가</th><th class="p-3 border-r">수량</th><th class="p-3 border-r bg-yellow-500 text-black">비중</th><th class="p-3 border-r">매수금액</th><th class="p-3 border-r bg-blue-900">현재금액</th><th class="p-3 border-r bg-green-900">목표금액</th><th class="p-3 border-r">수익률</th><th class="p-3">관리</th></tr>`;
-            document.getElementById('table-body').innerHTML = data.map(s => {
-                const buyTotal = s.p * s.q; const curTotal = s.cp * s.q;
-                const profit = buyTotal > 0 ? ((curTotal - buyTotal) / buyTotal * 100).toFixed(2) : 0;
-                const canManage = (currentTab === 'master' && currentUser.role === 'ADMIN') || (currentTab === 'personal' && viewingUser === currentUser.id);
-                return `<tr class="border-b"><td class="p-3 border font-black">${s.name}</td><td class="p-3 border">${s.p.toLocaleString()}</td><td class="p-3 border text-blue-600">${s.cp.toLocaleString()}</td><td class="p-3 border text-green-600">${s.tp.toLocaleString()}</td><td class="p-3 border">${s.q.toLocaleString()}</td><td class="p-3 border bg-yellow-50 font-black">${s.w}%</td><td class="p-3 border text-slate-400 font-normal">${buyTotal.toLocaleString()}</td><td class="p-3 border bg-blue-50">${curTotal.toLocaleString()}</td><td class="p-3 border bg-green-50">${(s.tp * s.q).toLocaleString()}</td><td class="p-3 border ${profit>0?'text-red-500':'text-blue-500'}">${profit}%</td><td class="p-3 border">${canManage ? `<button onclick='editRow(${JSON.stringify(s)})' class="bg-slate-100 px-2 py-1 rounded text-[10px] mr-1">수정</button><button onclick="deleteRow('${s.docId}')" class="bg-slate-100 px-2 py-1 rounded text-[10px]">삭제</button>` : '-'}</td></tr>`;
-            }).join('');
+            alert("서버 저장 완료");
+            renderUserListSidebar();
         }
 
         function renderUserListSidebar() {
@@ -221,10 +317,16 @@
         }
         function viewUserPortfolio(id) { viewingUser = id; switchTab('personal'); }
         function autoCalc() {
-            const p = Number(document.getElementById('in-price').value)||0; const cp = Number(document.getElementById('in-cur-price').value)||0; const tp = Number(document.getElementById('in-target').value)||0; const q = Number(document.getElementById('in-qty').value)||0;
-            document.getElementById('view-buy').innerText = (p*q).toLocaleString(); document.getElementById('view-cur').innerText = (cp*q).toLocaleString(); document.getElementById('view-target').innerText = (tp*q).toLocaleString();
+            const p = Number(document.getElementById('in-price').value)||0; 
+            const cp = Number(document.getElementById('in-cur-price').value)||0; 
+            const q = Number(document.getElementById('in-qty').value)||0;
+            document.getElementById('view-buy').innerText = (p*q).toLocaleString(); 
+            document.getElementById('view-cur').innerText = (cp*q).toLocaleString();
         }
-        function resetInput() { ["in-name", "in-price", "in-cur-price", "in-target", "in-qty", "in-weight", "in-memo"].forEach(id => { document.getElementById(id).value = ""; }); autoCalc(); }
+        function resetInput() { 
+            ["in-date", "in-name", "in-price", "in-cur-price", "in-target", "in-qty", "in-weight", "in-memo"].forEach(id => { document.getElementById(id).value = ""; }); 
+            autoCalc(); 
+        }
         function renderAccountSettings() {
             document.getElementById('account-list-body').innerHTML = userAccounts.map((u, i) => `<tr class="border-b"><td class="p-3 bg-slate-50 font-mono text-[10px]">#${u.slot}</td><td class="p-2 border-l"><input type="text" value="${u.id}" onchange="userAccounts[${i}].id=this.value.toLowerCase()" class="w-full p-1 text-center font-bold text-indigo-900 outline-none"></td><td class="p-2 border-l"><input type="text" value="${u.pw}" onchange="userAccounts[${i}].pw=this.value" class="w-full p-1 text-center outline-none"></td></tr>`).join('');
         }
